@@ -1,0 +1,29 @@
+[project]
+name = "ssh_connect"
+version = "1.0.0"
+description = "Interactive SSH connection helper with hostname resolution, key setup and prompt-toolkit UI."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "corus87"}
+]
+
+dependencies = [
+    "PyYAML>=6.0",
+    "prompt_toolkit>=3.0",
+]
+
+[project.urls]
+homepage = "https://github.com/corus87/ssh_connect"
+repository = "https://github.com/corus87/ssh_connect"
+
+[project.scripts]
+ssh_connect = "ssh_connect.__main__:main"
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["ssh_connect"]
