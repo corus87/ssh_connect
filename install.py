@@ -63,7 +63,7 @@ def ensure_venv():
 
 
 # ---------------------------------------------------------
-# WRAPPER INSTALLATION
+# WRAPPER INSTALLATION (NEW VERSION)
 # ---------------------------------------------------------
 def ensure_wrapper():
     """Install launcher + optional symlink interactively."""
@@ -72,14 +72,20 @@ def ensure_wrapper():
 
     wrapper_path = bin_dir / "ssh_connect"
 
+    project_root = Path(__file__).resolve().parent
+    venv_python = project_root / ".venv/bin/python"
+
     desired = f"""#!/bin/bash
-exec "{VENV}/bin/python" -m ssh_connect "$@"
+# Auto-generated ssh_connect launcher
+
+export PYTHONPATH="{project_root}:${{PYTHONPATH}}"
+exec "{venv_python}" -m ssh_connect "$@"
 """
 
     print("\nWrapper installation\n---------------------")
     print(f"Wrapper target: {wrapper_path}")
 
-    # Wrapper does not exist
+    # -------------- WRAPPER DOES NOT EXIST --------------
     if not wrapper_path.exists():
         if ask("Install wrapper?", default=True):
             wrapper_path.write_text(desired)
@@ -88,8 +94,9 @@ exec "{VENV}/bin/python" -m ssh_connect "$@"
         else:
             print("Skipping wrapper.")
             return
+
+    # -------------- WRAPPER EXISTS → MAYBE UPDATE --------------
     else:
-        # Exists → ask if update required
         current = wrapper_path.read_text()
         if current != desired:
             if ask("Wrapper exists. Update it?", default=True):
@@ -101,7 +108,7 @@ exec "{VENV}/bin/python" -m ssh_connect "$@"
         else:
             print("Wrapper already correct. Nothing to do.")
 
-    # Optional symlink
+    # -------------- OPTIONAL SYMLINK --------------
     print("\nShortcut command\n----------------")
     if ask("Create shortcut command (symlink)?", default=True):
         name = input("Symlink name (default: sc): ").strip()
@@ -121,7 +128,6 @@ exec "{VENV}/bin/python" -m ssh_connect "$@"
         print(f"Shortcut installed: {symlink_path}")
     else:
         print("Skipping shortcut.")
-
 
 # ---------------------------------------------------------
 # MAIN INSTALLER

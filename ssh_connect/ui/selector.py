@@ -59,13 +59,13 @@ def select_host(connections, default, style):
     @kb.add("k")
     def _(event):
         nonlocal selected
-        selected = max(0, selected - 1)
+        selected = (selected - 1) % len(connections)
 
     @kb.add("down")
     @kb.add("j")
     def _(event):
         nonlocal selected
-        selected = min(len(connections) - 1, selected + 1)
+        selected = (selected + 1) % len(connections)
 
     @kb.add("enter")
     def _(event):
@@ -75,7 +75,7 @@ def select_host(connections, default, style):
     @kb.add("c-c")
     def _(event):
         event.app.exit(result=None)
-
+ 
     app = Application(
         layout=Layout(root, focused_element=body),
         key_bindings=kb,

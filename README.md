@@ -18,6 +18,13 @@ It provides a fast, keyboard-driven workflow for jumping between multiple SSH ta
 
 ---
 
+## Demo
+<p align="left">
+  <img src="assets/demo.gif" height="450">
+</p>
+
+---
+
 ## Installation
 
 1. Clone the repository:
