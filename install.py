@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-import textwrap
 import subprocess
 from pathlib import Path
 
@@ -20,14 +19,7 @@ def ask(prompt, default=True):
     return ans.startswith("y")
 
 
-# ---------------------------------------------------------
-# PATH SELECTION LOGIC
-# ---------------------------------------------------------
 def find_valid_bindir():
-    """
-    Return the first writable directory from PATH or ask user if none is writable.
-    """
-
     path_entries = os.getenv("PATH", "").split(":")
     writable_dirs = []
 
@@ -39,7 +31,6 @@ def find_valid_bindir():
     if writable_dirs:
         return writable_dirs[0]
 
-    # --- No writable entries in PATH ---
     fallback = Path("~/.local/bin").expanduser()
 
     print("\nNo writable directory found in $PATH.")
@@ -55,32 +46,22 @@ def find_valid_bindir():
     sys.exit(1)
 
 
-# ---------------------------------------------------------
-# VIRTUAL ENVIRONMENT
-# ---------------------------------------------------------
 def ensure_venv():
-    """
-    Ensure a proper venv exists.
-    Detect broken venvs (e.g., missing python, missing pip).
-    """
-
     needs_create = False
 
-    # venv directory exists but may be broken
     if VENV.exists():
         py = VENV / "bin" / "python"
         pip = VENV / "bin" / "pip"
 
         if not py.exists() or not pip.exists():
-            print("Existing .venv is broken (missing python/pip). Recreating…")
+            print("Existing .venv is broken (missing python/pip). Recreating...")
             needs_create = True
-            # remove broken venv safely
             subprocess.run(["rm", "-rf", str(VENV)], check=True)
     else:
         needs_create = True
 
     if needs_create:
-        print("Creating virtual environment…")
+        print("Creating virtual environment...")
         try:
             subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)
         except subprocess.CalledProcessError:
@@ -92,13 +73,12 @@ def ensure_venv():
             print("  Arch:          sudo pacman -S python-virtualenv\n")
             sys.exit(1)
 
-    # install requirements (if any)
     pip = VENV / "bin" / "pip"
 
     if REQUIREMENTS.exists():
-        installed = subprocess.run([str(pip), "freeze"],
-                                   text=True,
-                                   capture_output=True).stdout.lower()
+        installed = subprocess.run(
+            [str(pip), "freeze"], text=True, capture_output=True
+        ).stdout.lower()
 
         with open(REQUIREMENTS, "r") as f:
             needed = [line.strip() for line in f if line.strip()]
@@ -110,17 +90,14 @@ def ensure_venv():
             subprocess.run([str(pip), "install"] + missing, check=True)
 
 
-# ---------------------------------------------------------
-# WRAPPER INSTALLATION
-# ---------------------------------------------------------
 def ensure_wrapper():
-    """Create/update wrapper + optional symlink."""
-
     bin_dir = find_valid_bindir()
     wrapper_path = bin_dir / "ssh_connect"
 
-    project_dir = SCRIPT_DIR.resolve()
-    venv_python = (VENV / "bin" / "python").resolve()
+    project_dir = SCRIPT_DIR
+    # Do NOT .resolve() here — that follows the venv symlink to the system Python,
+    # bypassing the venv entirely. The symlink path is exactly what we want.
+    venv_python = VENV / "bin" / "python"
 
     desired = f"""#!/bin/bash
 # Auto-generated ssh_connect launcher
@@ -159,7 +136,6 @@ exec "$VENV_PYTHON" -m ssh_connect "$@"
         else:
             print("Wrapper already correct. Nothing to do.")
 
-    # Shortcut symlink
     print("\nShortcut command\n----------------")
     if ask("Create shortcut (symlink)?", default=True):
         name = input("Symlink name (default: sc): ").strip() or "sc"
@@ -176,11 +152,6 @@ exec "$VENV_PYTHON" -m ssh_connect "$@"
         print(f"Shortcut created: {symlink}")
 
 
-
-
-# ---------------------------------------------------------
-# MAIN
-# ---------------------------------------------------------
 def main():
     print("\nssh_connect installer\n=====================")
 

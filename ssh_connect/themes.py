@@ -1,4 +1,3 @@
-import os
 from prompt_toolkit.styles import Style
 
 THEMES = {
@@ -81,7 +80,6 @@ THEMES = {
     },
 }
 
-def get_style():
-    theme = os.getenv("SSH_CONNECT_THEME", "material").lower()
-    tokens = THEMES.get(theme, THEMES["material"])
+def get_style(theme="material"):
+    tokens = THEMES.get(theme.lower(), THEMES["material"])
     return Style.from_dict(tokens)

@@ -8,13 +8,13 @@ It provides a fast, keyboard-driven workflow for jumping between multiple SSH ta
 ## Features
 
 - Interactive TUI menu (non-fullscreen, blends naturally into the shell)
-- DNS resolution (forward + reverse lookup)
+- DNS resolution (forward + reverse lookup, can be disabled)
 - Configurable display names
 - Sorting by IP or hostname
 - Multiple color themes (Material, Nord, Dracula, Gruvbox, etc.)
-- Automatic detection of missing authorized keys
+- Automatic detection of missing authorized keys (globally or per-host skippable)
 - Interactive public-key selection menu
-- Clean YAML-based host configuration
+- YAML-based configuration with global settings and per-host overrides
 
 ---
 
@@ -76,7 +76,7 @@ ssh_connect 3
 ssh_connect --list
 ```
 
-### Edit hosts file
+### Edit config file
 ```bash
 ssh_connect --edit
 ```
@@ -88,59 +88,75 @@ ssh_connect --themes
 
 ---
 
-## Host Configuration
+## Configuration
 
-Hosts are defined in a YAML file:
+All configuration lives in a single YAML file:
 
-**Default:** `~/.ssh_hosts.yml`  
+**Default:** `~/.ssh_connect.yml`  
 Override via:
 
 ```bash
 export SSH_CONNECT_HOSTS_FILE=/path/to/file.yml
 ```
 
-### Example `~/.ssh_hosts.yml`
+The file has two top-level sections: `settings` (global options) and `hosts` (your SSH targets).
+
+### Example `~/.ssh_connect.yml`
 
 ```yaml
-- name: Webserver
-  host: web01.internal.example.com
-  user: admin
+settings:
+  theme: material          # active color theme
+  resolve_dns: true        # set to false to skip DNS lookups (faster startup)
+  skip_key_setup: false    # set to true to disable the "upload SSH key?" prompt globally
 
-- host: 10.20.30.5
-  port: 2222
+hosts:
+  - name: Webserver
+    host: web01.internal.example.com
+    user: admin
 
-- host: db01
-  skip_key_setup: true
+  - host: 10.20.30.5
+    port: 2222
+
+  - host: db01
+    skip_key_setup: true   # per-host override, takes precedence over global setting
 ```
 
-Each entry may contain:
+### `settings` reference
 
-| Key             | Description                                         |
-|-----------------|-----------------------------------------------------|
-| `name`          | Display name (optional)                             |
-| `host`          | Hostname, FQDN, or IP (required)                    |
-| `user`          | SSH username (default: current user)                |
-| `port`          | SSH port (default: 22)                              |
-| `password`      | Password for sshpass-based login (optional)         |
-| `skip_key_setup`| Skip automatic `ssh-copy-id` (optional)             |
+| Key               | Default      | Description                                              |
+|-------------------|--------------|----------------------------------------------------------|
+| `theme`           | `material`   | Color theme. See `ssh_connect --themes` for all options. |
+| `resolve_dns`     | `true`       | Perform DNS lookups on startup. Disable if hosts are unreachable via DNS and startup is slow. |
+| `skip_key_setup`  | `false`      | Globally disable the automatic `ssh-copy-id` prompt.     |
+
+### `hosts` reference
+
+| Key               | Description                                              |
+|-------------------|----------------------------------------------------------|
+| `host`            | Hostname, FQDN, or IP (required)                         |
+| `name`            | Display name (optional, overrides DNS-resolved name)     |
+| `user`            | SSH username (default: current user)                     |
+| `port`            | SSH port (default: 22)                                   |
+| `password`        | Password for sshpass-based login (optional)              |
+| `skip_key_setup`  | Per-host override for key setup prompt (optional)        |
 
 ---
 
 ## Environment Variables
 
 ### `SSH_CONNECT_HOSTS_FILE`
-Custom hosts file path.
+Custom config file path.
 
 ### `SSH_CONNECT_SORT`
 Sorting method:
 
 ```
-ip     → numeric IP sort (default)  
-name   → alphabetical by resolved_name
+ip     → numeric IP sort (default)
+name   → alphabetical by resolved name
 ```
 
 ### `SSH_CONNECT_THEME`
-Theme selection. Example:
+Overrides the theme set in the config file. Example:
 
 ```bash
 export SSH_CONNECT_THEME=dracula
@@ -156,15 +172,45 @@ ssh_connect --themes
 
 ## Key Upload Workflow
 
-If a host refuses login with:
+If a host refuses login with `Permission denied`, `publickey`, or a password prompt,
+ssh_connect offers to upload a public key automatically via `ssh-copy-id`.
 
-- `Permission denied`
-- `publickey`
-- password prompt
+This can be disabled globally via `skip_key_setup: true` in the `settings` block,
+or per-host by setting `skip_key_setup: true` on an individual host entry.
 
-ssh_connect can automatically upload a public key.
+---
+
+## Migrating from an older version
+
+The config file was renamed from `~/.ssh_hosts.yml` to `~/.ssh_connect.yml`, and the
+format changed from a plain host list to a structured document with `settings` and `hosts` keys.
+
+```bash
+mv ~/.ssh_hosts.yml ~/.ssh_connect.yml
+```
+
+Then wrap your existing entries under a `hosts:` key and add a `settings:` block:
+
+```yaml
+# before
+- host: 10.0.0.1
+  name: MyServer
+
+# after
+settings:
+  theme: material
+  resolve_dns: true
+  skip_key_setup: false
+
+hosts:
+  - host: 10.0.0.1
+    name: MyServer
+```
+
+The old plain-list format still works but prints a warning on startup.
+
+---
 
 ## License
 
 MIT — feel free to modify or integrate into your workflow.
-
