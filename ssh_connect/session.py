@@ -19,11 +19,19 @@ def list_local_pubkeys():
     return sorted(keys, key=lambda k: (not k.endswith("ed25519.pub"), k))
 
 
+def _build_ssh_cmd(user, host, port, identity_file=None):
+    cmd = ["ssh", f"{user}@{host}", "-p", port]
+    if identity_file:
+        cmd += ["-i", os.path.expanduser(identity_file)]
+    return cmd
+
+
 def start_session(con, index, style, save_pos_cb, settings):
     user = con.get("user", os.getenv("LOGNAME"))
     host = con["resolved_ip"]
     port = str(con.get("port", 22))
     password = con.get("password")
+    identity_file = con.get("identity_file")
 
     save_pos_cb(index)
 
@@ -34,9 +42,13 @@ def start_session(con, index, style, save_pos_cb, settings):
             )
         return subprocess.run(["ssh", f"{user}@{host}", "-p", port])
 
+    probe_cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3",
+                 f"{user}@{host}", "-p", port, "true"]
+    if identity_file:
+        probe_cmd += ["-i", os.path.expanduser(identity_file)]
+
     check = subprocess.run(
-        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3",
-         f"{user}@{host}", "-p", port, "true"],
+        probe_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -50,7 +62,6 @@ def start_session(con, index, style, save_pos_cb, settings):
         print(f"Host {host} unreachable.")
         return
 
-    # Per-host setting overrides global; global default comes from settings
     skip_key = con.get("skip_key_setup", settings.skip_key_setup)
 
     if need_key and not skip_key:
@@ -61,4 +72,4 @@ def start_session(con, index, style, save_pos_cb, settings):
                 return
             subprocess.run(["ssh-copy-id", "-i", key, "-p", port, f"{user}@{host}"])
 
-    return subprocess.run(["ssh", f"{user}@{host}", "-p", port])
+    return subprocess.run(_build_ssh_cmd(user, host, port, identity_file))

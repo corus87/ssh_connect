@@ -14,6 +14,7 @@ It provides a fast, keyboard-driven workflow for jumping between multiple SSH ta
 - Multiple color themes (Material, Nord, Dracula, Gruvbox, etc.)
 - Automatic detection of missing authorized keys (globally or per-host skippable)
 - Interactive public-key selection menu
+- Per-host identity file (`-i`) support
 - YAML-based configuration with global settings and per-host overrides
 
 ---
@@ -116,9 +117,10 @@ hosts:
 
   - host: 10.20.30.5
     port: 2222
+    identity_file: ~/.ssh/id_ed25519_work
 
   - host: db01
-    skip_key_setup: true   # per-host override, takes precedence over global setting
+    skip_key_setup: true
 ```
 
 ### `settings` reference
@@ -138,6 +140,7 @@ hosts:
 | `user`            | SSH username (default: current user)                     |
 | `port`            | SSH port (default: 22)                                   |
 | `password`        | Password for sshpass-based login (optional)              |
+| `identity_file`   | Path to private key, passed as `ssh -i` (optional)       |
 | `skip_key_setup`  | Per-host override for key setup prompt (optional)        |
 
 ---
@@ -177,37 +180,6 @@ ssh_connect offers to upload a public key automatically via `ssh-copy-id`.
 
 This can be disabled globally via `skip_key_setup: true` in the `settings` block,
 or per-host by setting `skip_key_setup: true` on an individual host entry.
-
----
-
-## Migrating from an older version
-
-The config file was renamed from `~/.ssh_hosts.yml` to `~/.ssh_connect.yml`, and the
-format changed from a plain host list to a structured document with `settings` and `hosts` keys.
-
-```bash
-mv ~/.ssh_hosts.yml ~/.ssh_connect.yml
-```
-
-Then wrap your existing entries under a `hosts:` key and add a `settings:` block:
-
-```yaml
-# before
-- host: 10.0.0.1
-  name: MyServer
-
-# after
-settings:
-  theme: material
-  resolve_dns: true
-  skip_key_setup: false
-
-hosts:
-  - host: 10.0.0.1
-    name: MyServer
-```
-
-The old plain-list format still works but prints a warning on startup.
 
 ---
 

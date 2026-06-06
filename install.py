@@ -154,10 +154,8 @@ exec "$VENV_PYTHON" -m ssh_connect "$@"
 
 def main():
     print("\nssh_connect installer\n=====================")
-
     ensure_venv()
     ensure_wrapper()
-
     print("\nInstallation completed.\n")
 
 

@@ -92,7 +92,6 @@ def _resolve_hosts(entries, resolve_dns):
             entry["resolved_name"] = host.split(".")[0].capitalize()
             continue
 
-        # Simple hostname
         ip = _resolve_hostname(host) if resolve_dns else host
         entry["resolved_ip"] = ip
 

@@ -80,6 +80,7 @@ THEMES = {
     },
 }
 
+
 def get_style(theme="material"):
     tokens = THEMES.get(theme.lower(), THEMES["material"])
     return Style.from_dict(tokens)

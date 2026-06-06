@@ -12,6 +12,7 @@ hosts:
   - host: myserver.example.com
     name: VPS
     user: root
+    identity_file: ~/.ssh/id_ed25519_vps
 
   - host: 10.0.0.5
     skip_key_setup: true   # per-host override, takes precedence over global setting

@@ -48,7 +48,6 @@ class SSHConnect:
         )
         self.settings, self.connections = load_config(self.config_file)
 
-        # Env var overrides config-file theme
         theme = os.getenv("SSH_CONNECT_THEME", self.settings.theme)
         self.style = get_style(theme)
 
