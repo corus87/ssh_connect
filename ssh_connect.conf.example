@@ -1,0 +1,16 @@
+# Example for ~/.ssh/ssh_connect.conf
+# Requires "Include ~/.ssh/ssh_connect.conf" at the top of ~/.ssh/config
+
+Host web01
+    HostName web01.internal.example.com
+    User admin
+
+Host work-db
+    HostName 10.20.30.5
+    Port 2222
+    IdentityFile ~/.ssh/id_ed25519_work
+
+Host behind-jump
+    HostName 192.168.5.5
+    User root
+    ProxyJump web01

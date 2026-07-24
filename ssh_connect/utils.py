@@ -1,14 +1,18 @@
-import os
+from pathlib import Path
 
-def save_last_pos(idx):
-    path = os.path.expanduser("~/.cache/ssh_last_connection")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        f.write(str(idx))
+CACHE = Path("~/.cache/ssh_connect_last").expanduser()
 
-def load_last_pos():
+
+def save_last(alias: str) -> None:
     try:
-        path = os.path.expanduser("~/.cache/ssh_last_connection")
-        return int(open(path).read().strip())
-    except:
-        return 0
+        CACHE.parent.mkdir(parents=True, exist_ok=True)
+        CACHE.write_text(alias)
+    except OSError:
+        pass
+
+
+def load_last() -> str:
+    try:
+        return CACHE.read_text().strip()
+    except OSError:
+        return ""

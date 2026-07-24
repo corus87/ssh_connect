@@ -1,2 +1,2 @@
-PyYAML
+PyYAML>=6.0
 prompt_toolkit>=3.0

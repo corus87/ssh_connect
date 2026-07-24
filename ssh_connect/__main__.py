@@ -1,7 +1,4 @@
-from .app import SSHConnect
+from .app import main
 
 if __name__ == "__main__":
-    try:
-        SSHConnect().run()
-    except KeyboardInterrupt:
-        pass
+    main()

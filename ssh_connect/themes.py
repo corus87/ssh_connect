@@ -13,66 +13,66 @@ THEMES = {
         "sel_ip":     "#859900 bold",
     },
     "nord": {
-        "question": "#88c0d0 bold",
-        "cursor":   "#81a1c1 bold",
-        "index":    "#4c566a",
-        "name":     "#88c0d0 bold",
-        "ip":       "#a3be8c bold",
+        "question":   "#88c0d0 bold",
+        "cursor":     "#81a1c1 bold",
+        "index":      "#4c566a",
+        "name":       "#88c0d0 bold",
+        "ip":         "#a3be8c bold",
         "sel_cursor": "#81a1c1 bold",
         "sel_index":  "#eceff4 bold",
         "sel_name":   "#8fbcbb bold",
         "sel_ip":     "#a3be8c bold",
     },
     "dracula": {
-        "question": "#bd93f9 bold",
-        "cursor":   "#ff79c6 bold",
-        "index":    "#6272a4",
-        "name":     "#bd93f9 bold",
-        "ip":       "#50fa7b bold",
+        "question":   "#bd93f9 bold",
+        "cursor":     "#ff79c6 bold",
+        "index":      "#6272a4",
+        "name":       "#bd93f9 bold",
+        "ip":         "#50fa7b bold",
         "sel_cursor": "#ff79c6 bold",
         "sel_index":  "#f8f8f2 bold",
         "sel_name":   "#bd93f9 bold",
         "sel_ip":     "#50fa7b bold",
     },
     "gruvbox": {
-        "question": "#fabd2f bold",
-        "cursor":   "#fabd2f bold",
-        "index":    "#665c54",
-        "name":     "#fabd2f bold",
-        "ip":       "#b8bb26 bold",
+        "question":   "#fabd2f bold",
+        "cursor":     "#fabd2f bold",
+        "index":      "#665c54",
+        "name":       "#fabd2f bold",
+        "ip":         "#b8bb26 bold",
         "sel_cursor": "#fabd2f bold",
         "sel_index":  "#ebdbb2 bold",
         "sel_name":   "#d79921 bold",
         "sel_ip":     "#b8bb26 bold",
     },
     "neon": {
-        "question": "#00ffff bold",
-        "cursor":   "#ff0090 bold",
-        "index":    "#551a8b",
-        "name":     "#00ffff bold",
-        "ip":       "#39ff14 bold",
+        "question":   "#00ffff bold",
+        "cursor":     "#ff0090 bold",
+        "index":      "#551a8b",
+        "name":       "#00ffff bold",
+        "ip":         "#39ff14 bold",
         "sel_cursor": "#ff0090 bold",
         "sel_index":  "#fffb00 bold",
         "sel_name":   "#00b3ff bold",
         "sel_ip":     "#39ff14 bold",
     },
     "minimal": {
-        "question": "#00afff bold",
-        "cursor":   "#00afff bold",
-        "index":    "#666666",
-        "name":     "#00afff bold",
-        "ip":       "#00d75f bold",
+        "question":   "#00afff bold",
+        "cursor":     "#00afff bold",
+        "index":      "#666666",
+        "name":       "#00afff bold",
+        "ip":         "#00d75f bold",
         "sel_cursor": "#00afff bold",
         "sel_index":  "#999999 bold",
         "sel_name":   "#5f87ff bold",
         "sel_ip":     "#00d75f bold",
     },
     "material": {
-        "question": "#2196f3 bold",
-        "cursor":   "#ff9800 bold",
-        "index":    "#aaaaaa",
-        "name":     "#5f87ff bold",
-        "ip":       "#87af5f bold",
+        "question":   "#2196f3 bold",
+        "cursor":     "#ff9800 bold",
+        "index":      "#aaaaaa",
+        "name":       "#5f87ff bold",
+        "ip":         "#87af5f bold",
         "sel_cursor": "#ff9800 bold",
         "sel_index":  "#eeeeee bold",
         "sel_name":   "#03a9f4 bold",
@@ -80,7 +80,38 @@ THEMES = {
     },
 }
 
+DESCRIPTIONS = {
+    "material":       "Clean Material Design look (default)",
+    "solarized-dark": "Warm Solarized Dark palette",
+    "nord":           "Cool blue Nord colors",
+    "dracula":        "High-contrast neon-gothic look",
+    "gruvbox":        "Earthy warm Gruvbox scheme",
+    "neon":           "Vibrant cyberpunk neon colors",
+    "minimal":        "Subtle clean minimalistic theme",
+}
 
-def get_style(theme="material"):
-    tokens = THEMES.get(theme.lower(), THEMES["material"])
-    return Style.from_dict(tokens)
+DEFAULT = "material"
+
+
+def get_style(theme=DEFAULT) -> Style:
+    tokens = THEMES.get(str(theme).lower(), THEMES[DEFAULT])
+    return Style.from_dict(
+        {
+            **tokens,
+            "sc.title": tokens["question"],
+            "sc.pointer": tokens["sel_cursor"],
+            "sc.item": tokens["name"],
+            "sc.item.selected": tokens["sel_name"],
+            "sc.sub": tokens["ip"],
+            "sc.sub.selected": tokens["sel_ip"],
+            "sc.filter": tokens["sel_index"],
+            "sc.hint": tokens["index"],
+        }
+    )
+
+
+def print_themes() -> None:
+    print("\nAvailable themes for ssh_connect:\n")
+    for name in THEMES:
+        print(f"  {name:<15} – {DESCRIPTIONS.get(name, '')}")
+    print("\nSet 'theme' in ~/.ssh/ssh_connect.yml or run 'ssh_connect --settings'\n")

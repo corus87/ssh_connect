@@ -1,185 +1,192 @@
 # ssh_connect
 
-`ssh_connect` is an interactive SSH host selector with DNS resolution, theming, key-handling support, and a clean prompt-toolkit interface.  
-It provides a fast, keyboard-driven workflow for jumping between multiple SSH targets.
+`ssh_connect` is an interactive SSH host selector that stores its hosts in a real
+OpenSSH config file. Instead of keeping a private host list, it manages
+`~/.ssh/ssh_connect.conf`, which is pulled into your normal SSH setup with a single
+`Include` directive.
+
+That means every host you add is immediately usable by `ssh`, `scp`, `rsync`, `git`
+and VS Code Remote-SSH, and features like `ProxyJump` work without ssh_connect
+knowing anything about them.
 
 ---
 
 ## Features
 
 - Interactive TUI menu (non-fullscreen, blends naturally into the shell)
-- DNS resolution (forward + reverse lookup, can be disabled)
-- Configurable display names
-- Sorting by IP or hostname
-- Multiple color themes (Material, Nord, Dracula, Gruvbox, etc.)
-- Automatic detection of missing authorized keys (globally or per-host skippable)
-- Interactive public-key selection menu
-- Per-host identity file (`-i`) support
-- YAML-based configuration with global settings and per-host overrides
-
----
-
-## Demo
-<p align="left">
-  <img src="assets/demo.gif" height="450">
-</p>
+- Hosts live in a standard OpenSSH config file, shared with every other SSH tool
+- `sc user@host` connects if the host is known, otherwise offers to add it
+- Type-to-filter host selection, remembers the last connection
+- On-demand reverse DNS to turn IP-named hosts into readable aliases
+- Automatic detection of missing authorized keys, with interactive key upload
+- `sshpass` support for appliances that only accept passwords
+- Multiple color themes
 
 ---
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/corus87/ssh_connect.git
-   cd ssh_connect
-   ```
-
-2. Run the installer:
-   ```bash
-   ./install.py
-   ```
-
-This will:
-
-- Create a local virtual environment (`.venv`)
-- Install all Python dependencies
-- Install the wrapper at `~/.local/bin/ssh_connect`
-- Optionally install a short alias (`sc` → symlink)
-
-After installation, simply run:
-
-```bash
-ssh_connect
+```
+git clone https://github.com/corus87/ssh_connect.git
+cd ssh_connect
+./install.py
 ```
 
-or
+The installer creates a virtual environment, installs a wrapper into a writable
+directory in your `$PATH`, optionally creates a shortcut (default `sc`), and offers
+to add the include directive to `~/.ssh/config`.
 
-```bash
-sc
+If you skip the last step, add this line yourself at the **top** of `~/.ssh/config`:
+
 ```
+Include ~/.ssh/ssh_connect.conf
+```
+
+It has to be at the top: OpenSSH keeps the first value it finds for each keyword.
 
 ---
 
 ## Usage
 
-### Interactive selector
-```bash
-ssh_connect
+| Command                | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| `sc`                   | interactive selector                                     |
+| `sc web01`             | connect to a known alias                                 |
+| `sc root@192.169.0.10`    | connect, or offer to add the host if it is unknown       |
+| `sc 192.169.0.10:2222`    | same, with an explicit port                              |
+| `sc --list`            | list configured hosts                                    |
+| `sc --edit`            | open `~/.ssh/ssh_connect.conf` in `$EDITOR`              |
+| `sc --settings`        | open `~/.ssh/ssh_connect.yml` in `$EDITOR`               |
+| `sc --resolve`         | name unnamed hosts from reverse DNS (see below)           |
+| `sc --themes`          | list available themes                                    |
+
+In the selector: arrow keys or `Ctrl-N`/`Ctrl-P` to move, type to filter,
+`Enter` to connect, `Esc` to cancel.
+
+### Adding hosts
+
+`sc deploy@192.169.0.99` looks for an entry with that hostname and user. If none exists,
+it asks whether to add one, suggests an alias, and writes a normal `Host` block:
+
+```
+Host deploy-192.169.0.99
+    HostName 192.169.0.99
+    User deploy
 ```
 
-### Connect by index
-```bash
-ssh_connect 3
+User and hostname are matched together, so `root@192.169.0.10` and `username@192.169.0.10`
+end up as two separate entries. If a hostname is given without a user and matches
+several entries, the selector asks which one you mean.
+
+### Naming hosts from DNS
+
+After a migration your hosts are often named after their IP. `sc --resolve` does a
+reverse lookup for all of them at once and walks you through the results:
+
+```
+$ sc --resolve
+Resolving 12 address(es)...
+
+Enter accepts, edit to change, clear the line to skip, Ctrl-C to stop.
+
+192.169.0.10  ->  truenas.fritz.box
+Alias: Truenas
+
+192.169.0.11  ->  homeassistant.fritz.box
+Alias: Homeassistant
 ```
 
-### List resolved hosts
-```bash
-ssh_connect --list
-```
+The header shows the current alias and the name that was found, the prompt below is
+pre-filled with the proposal and editable. Ctrl-C stops the run but keeps everything
+you already confirmed. Only the `Host` line is rewritten, the rest of the block stays
+as it is.
 
-### Edit config file
-```bash
-ssh_connect --edit
-```
+By default only hosts whose alias still equals their connection target are offered,
+so entries you already named are left alone. Options:
 
-### Show available themes
-```bash
-ssh_connect --themes
-```
+| Flag / argument      | Effect                                                 |
+| -------------------- | ------------------------------------------------------ |
+| `--fqdn`             | propose the full name instead of the first label       |
+| `--all`              | review every host, including already named ones        |
+| `sc --resolve web01` | only this host                                         |
+
+Lookups run in parallel with a 3 second overall timeout, so a slow or unreachable
+DNS server costs you three seconds in total, not per host. Hosts that cannot be
+resolved are listed at the end and left untouched.
+
+### Key upload
+
+Before connecting, ssh_connect checks with `BatchMode=yes` whether a key-based login
+works. If the host wants a password instead, it offers to upload a public key from
+`~/.ssh` via `ssh-copy-id`. Declining once offers to silence the prompt for that host
+permanently.
+
+This applies to every host in the config, including ones you added by hand.
 
 ---
 
 ## Configuration
 
-All configuration lives in a single YAML file:
+### Hosts: `~/.ssh/ssh_connect.conf`
 
-**Default:** `~/.ssh_connect.yml`  
-Override via:
+A plain OpenSSH config file. Edit it with `sc --edit` or any editor:
 
-```bash
-export SSH_CONNECT_HOSTS_FILE=/path/to/file.yml
+```
+Host web01
+    HostName web01.internal.example.com
+    User admin
+
+Host jump-target
+    HostName 192.168.5.5
+    Port 2222
+    ProxyJump web01
 ```
 
-The file has two top-level sections: `settings` (global options) and `hosts` (your SSH targets).
+### Settings: `~/.ssh/ssh_connect.yml`
 
-### Example `~/.ssh_connect.yml`
+Only holds options that have no equivalent in the OpenSSH config format:
 
 ```yaml
-settings:
-  theme: material          # active color theme
-  resolve_dns: true        # set to false to skip DNS lookups (faster startup)
-  skip_key_setup: false    # set to true to disable the "upload SSH key?" prompt globally
+theme: material
+max_rows: 15              # hosts per page in the selector
 
 hosts:
-  - name: Webserver
-    host: web01.internal.example.com
-    user: admin
-
-  - host: 10.20.30.5
-    port: 2222
-    identity_file: ~/.ssh/id_ed25519_work
-
-  - host: db01
-    skip_key_setup: true
+  appliance:
+    password: secret        # login via sshpass
+  legacy-box:
+    skip_key_setup: true    # never offer to upload a public key
 ```
 
-### `settings` reference
+Keys under `hosts` are the aliases from `ssh_connect.conf`.
 
-| Key               | Default      | Description                                              |
-|-------------------|--------------|----------------------------------------------------------|
-| `theme`           | `material`   | Color theme. See `ssh_connect --themes` for all options. |
-| `resolve_dns`     | `true`       | Perform DNS lookups on startup. Disable if hosts are unreachable via DNS and startup is slow. |
-| `skip_key_setup`  | `false`      | Globally disable the automatic `ssh-copy-id` prompt.     |
-
-### `hosts` reference
-
-| Key               | Description                                              |
-|-------------------|----------------------------------------------------------|
-| `host`            | Hostname, FQDN, or IP (required)                         |
-| `name`            | Display name (optional, overrides DNS-resolved name)     |
-| `user`            | SSH username (default: current user)                     |
-| `port`            | SSH port (default: 22)                                   |
-| `password`        | Password for sshpass-based login (optional)              |
-| `identity_file`   | Path to private key, passed as `ssh -i` (optional)       |
-| `skip_key_setup`  | Per-host override for key setup prompt (optional)        |
+`max_rows` is the number of hosts shown before the list starts scrolling. It is
+capped to what the terminal can actually display, so a large value simply means
+"as many as fit".
 
 ---
 
-## Environment Variables
+## Upgrading from 1.x
 
-### `SSH_CONNECT_HOSTS_FILE`
-Custom config file path.
-
-### `SSH_CONNECT_SORT`
-Sorting method:
+Version 2.0 changes the config format and location. Run the migration once:
 
 ```
-ip     → numeric IP sort (default)
-name   → alphabetical by resolved name
+python3 migrate_v1_to_v2.py            # reads ~/.ssh_connect.yml
+python3 migrate_v1_to_v2.py other.yml  # or an explicit path
 ```
 
-### `SSH_CONNECT_THEME`
-Overrides the theme set in the config file. Example:
+It converts `~/.ssh_connect.yml` into `~/.ssh/ssh_connect.conf` and
+`~/.ssh/ssh_connect.yml`. The old file is left untouched.
 
-```bash
-export SSH_CONNECT_THEME=dracula
-```
+What changed:
 
-List available themes:
-
-```bash
-ssh_connect --themes
-```
-
----
-
-## Key Upload Workflow
-
-If a host refuses login with `Permission denied`, `publickey`, or a password prompt,
-ssh_connect offers to upload a public key automatically via `ssh-copy-id`.
-
-This can be disabled globally via `skip_key_setup: true` in the `settings` block,
-or per-host by setting `skip_key_setup: true` on an individual host entry.
+- Hosts are stored as OpenSSH `Host` blocks instead of a YAML list
+- Connecting by index (`ssh_connect 3`) is gone, use the alias or `user@host`
+- Automatic DNS resolution on every start is gone, the list shows aliases
+  and hostnames only. Use `--resolve` on demand instead
+- All `SSH_CONNECT_*` environment variables are gone, everything lives in the
+  settings file now
+- `skip_key_setup` is per host only, the global switch is gone
+- `j`/`k` no longer move the cursor, those keys type into the filter now
 
 ---
 

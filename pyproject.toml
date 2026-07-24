@@ -1,7 +1,7 @@
 [project]
 name = "ssh_connect"
-version = "1.0.0"
-description = "Interactive SSH connection helper with hostname resolution, key setup and prompt-toolkit UI."
+version = "2.0.0"
+description = "Interactive SSH host selector backed by an OpenSSH config include."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -19,11 +19,11 @@ homepage = "https://github.com/corus87/ssh_connect"
 repository = "https://github.com/corus87/ssh_connect"
 
 [project.scripts]
-ssh_connect = "ssh_connect.__main__:main"
+ssh_connect = "ssh_connect.app:main"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["ssh_connect"]
+packages = ["ssh_connect", "ssh_connect.ui"]

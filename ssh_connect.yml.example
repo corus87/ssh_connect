@@ -1,18 +1,10 @@
-settings:
-  theme: material          # material, nord, dracula, gruvbox, neon, minimal, solarized-dark
-  resolve_dns: true        # set to false to skip DNS lookups (faster startup if hosts are unreachable)
-  skip_key_setup: false    # set to true to globally disable the "upload SSH key?" prompt
+# Optional settings file, expected at ~/.ssh/ssh_connect.yml
+# Hosts are NOT configured here, they live in ~/.ssh/ssh_connect.conf.
+
+theme: material
 
 hosts:
-  - host: 192.168.1.10
-    name: Webserver
-    user: admin
-    port: 22
-
-  - host: myserver.example.com
-    name: VPS
-    user: root
-    identity_file: ~/.ssh/id_ed25519_vps
-
-  - host: 10.0.0.5
-    skip_key_setup: true   # per-host override, takes precedence over global setting
+  appliance:
+    password: secret        # login via sshpass
+  legacy-box:
+    skip_key_setup: true    # never offer to upload a public key

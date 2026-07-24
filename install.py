@@ -152,10 +152,34 @@ exec "$VENV_PYTHON" -m ssh_connect "$@"
         print(f"Shortcut created: {symlink}")
 
 
+def ensure_include():
+    ssh_config = Path("~/.ssh/config").expanduser()
+    include_line = "Include ~/.ssh/ssh_connect.conf"
+    existing = ssh_config.read_text() if ssh_config.exists() else ""
+
+    print("\nOpenSSH include\n---------------")
+    if "ssh_connect.conf" in existing:
+        print("Include already present. Nothing to do.")
+        return
+
+    print(f"ssh_connect stores its hosts in ~/.ssh/ssh_connect.conf.")
+    print(f"Without '{include_line}' in {ssh_config}, ssh will not see them.")
+
+    if not ask("Add the include line now?", default=True):
+        print("Skipping. Add it manually at the top of your ssh config.")
+        return
+
+    ssh_config.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    ssh_config.write_text(f"{include_line}\n\n{existing}")
+    ssh_config.chmod(0o600)
+    print(f"Updated {ssh_config}")
+
+
 def main():
     print("\nssh_connect installer\n=====================")
     ensure_venv()
     ensure_wrapper()
+    ensure_include()
     print("\nInstallation completed.\n")
 
 
