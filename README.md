@@ -52,8 +52,8 @@ It has to be at the top: OpenSSH keeps the first value it finds for each keyword
 | ---------------------- | -------------------------------------------------------- |
 | `sc`                   | interactive selector                                     |
 | `sc web01`             | connect to a known alias                                 |
-| `sc root@192.169.0.10`    | connect, or offer to add the host if it is unknown       |
-| `sc 192.169.0.10:2222`    | same, with an explicit port                              |
+| `sc root@10.0.0.10`    | connect, or offer to add the host if it is unknown       |
+| `sc 10.0.0.10:2222`    | same, with an explicit port                              |
 | `sc --list`            | list configured hosts                                    |
 | `sc --edit`            | open `~/.ssh/ssh_connect.conf` in `$EDITOR`              |
 | `sc --settings`        | open `~/.ssh/ssh_connect.yml` in `$EDITOR`               |
@@ -65,16 +65,29 @@ In the selector: arrow keys or `Ctrl-N`/`Ctrl-P` to move, type to filter,
 
 ### Adding hosts
 
-`sc deploy@192.169.0.99` looks for an entry with that hostname and user. If none exists,
+`sc deploy@10.0.0.99` looks for an entry with that hostname and user. If none exists,
 it asks whether to add one, suggests an alias, and writes a normal `Host` block:
 
 ```
-Host deploy-192.169.0.99
-    HostName 192.169.0.99
-    User deploy
+$ sc skynet@10.0.0.20
+skynet@10.0.0.20 is not configured yet. Add it? (Y/n)
+Alias: Checkmk-skynet
 ```
 
-User and hostname are matched together, so `root@192.169.0.10` and `username@192.169.0.10`
+The suggestion comes from a reverse lookup of the address, with the user appended
+when it differs from your own. That gives one entry per user on the same machine,
+sorted next to each other:
+
+```
+Checkmk           10.0.0.20
+Checkmk-skynet    skynet@10.0.0.20
+```
+
+An alias has to be a single word. `Host` takes a whitespace separated list of
+patterns, so `Checkmk (Skynet)` would define two aliases rather than one name, and
+the prompt rejects it and offers `Checkmk-Skynet` instead.
+
+User and hostname are matched together, so `root@10.0.0.10` and `patrick@10.0.0.10`
 end up as two separate entries. If a hostname is given without a user and matches
 several entries, the selector asks which one you mean.
 
@@ -89,10 +102,10 @@ Resolving 12 address(es)...
 
 Enter accepts, edit to change, clear the line to skip, Ctrl-C to stop.
 
-192.169.0.10  ->  truenas.fritz.box
+10.0.0.10  ->  truenas.fritz.box
 Alias: Truenas
 
-192.169.0.11  ->  homeassistant.fritz.box
+10.0.0.11  ->  homeassistant.fritz.box
 Alias: Homeassistant
 ```
 

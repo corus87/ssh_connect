@@ -8,10 +8,10 @@ from prompt_toolkit.shortcuts import print_formatted_text
 
 from . import __version__
 from .paths import CONFIG_FILE, INCLUDE_LINE, SETTINGS_FILE, ensure_file, include_present
-from .resolve import is_ip, propose_alias, reverse_lookup
+from .resolve import is_ip, propose_alias, reverse_lookup, shorten
 from .session import start_session
 from .settings import Settings
-from .ssh_config import HostEntry, SSHConfig
+from .ssh_config import HostEntry, SSHConfig, sanitize_alias, valid_alias
 from .themes import get_style, print_themes
 from .ui.confirm import ask_confirm, ask_text
 from .ui.selector import select
@@ -39,11 +39,32 @@ def unique(base: str, taken) -> str:
     return f"{base}-{index}"
 
 
+def prompt_alias(style, default: str, message: str = "Alias:"):
+    """Ask for an alias until it is a single valid Host token, or the user backs out."""
+    while True:
+        answer = ask_text(message, style, default=default)
+        if not answer:
+            return answer
+        if valid_alias(answer):
+            return answer
+        default = sanitize_alias(answer) or default
+        print("An alias must be a single word without spaces or wildcards.")
+
+
+def target_label(entry) -> str:
+    target = f"{entry.user}@{entry.hostname}" if entry.user else entry.hostname
+    return f"{target}:{entry.port}" if entry.port else target
+
+
 def suggest_alias(config: SSHConfig, host: str, user) -> str:
-    base = host if is_ip(host) else host.split(".")[0]
-    if user and user != os.getenv("LOGNAME"):
-        base = f"{user}-{base}"
-    return config.unique_alias(base)
+    if is_ip(host):
+        found = reverse_lookup([host], timeout=2.0).get(host)
+        base = shorten(found) if found else host
+    else:
+        base = shorten(host)
+    if user and user != (os.getenv("USER") or os.getenv("LOGNAME")):
+        base = f"{base}-{user}"
+    return config.unique_alias(sanitize_alias(base) or "host")
 
 
 def add_host(config: SSHConfig, host: str, user, port, style):
@@ -51,7 +72,7 @@ def add_host(config: SSHConfig, host: str, user, port, style):
     if not ask_confirm(f"{label} is not configured yet. Add it?", style):
         return None
 
-    alias = ask_text("Alias:", style, default=suggest_alias(config, host, user))
+    alias = prompt_alias(style, suggest_alias(config, host, user))
     if not alias:
         return None
 
@@ -84,7 +105,7 @@ def resolve(config: SSHConfig, target: str, style, max_rows):
             style,
             title=f"Multiple entries for {host}:",
             label=lambda e: e.alias,
-            sublabel=lambda e: f"{e.user}@{e.hostname}" if e.user else e.hostname,
+            sublabel=target_label,
             max_rows=max_rows,
         )
     return add_host(config, host, user, port, style)
@@ -141,7 +162,7 @@ def resolve_aliases(config, settings, style, keep_fqdn, only=None, everything=Fa
             style=style,
         )
 
-        answer = ask_text("Alias:", style, default=proposal)
+        answer = prompt_alias(style, proposal)
         if answer is None:
             print("\nStopped.")
             break
@@ -176,9 +197,7 @@ def print_list(config: SSHConfig) -> None:
         return
     width = max(len(e.alias) for e in entries)
     for entry in entries:
-        target = f"{entry.user}@{entry.hostname}" if entry.user else entry.hostname
-        suffix = f":{entry.port}" if entry.port else ""
-        print(f"{entry.alias.ljust(width)}   {target}{suffix}")
+        print(f"{entry.alias.ljust(width)}   {target_label(entry)}")
 
 
 def open_editor(path) -> None:
@@ -221,7 +240,7 @@ class SSHConnect:
             entries,
             self.style,
             label=lambda e: e.alias,
-            sublabel=lambda e: e.hostname if e.hostname != e.alias else "",
+            sublabel=lambda e: "" if e.alias == target_label(e) else target_label(e),
             initial=initial,
             max_rows=self.settings.max_rows,
         )

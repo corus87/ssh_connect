@@ -12,13 +12,16 @@ Run `python3 migrate_v1_to_v2.py` once to convert an existing 1.x setup.
 ### Added
 
 - `sc user@host` connects to a known host or offers to add it, matching on
-  hostname and user so `root@192.169.0.10` and `username@192.169.0.10` stay separate
+  hostname and user so `root@10.0.0.10` and `patrick@10.0.0.10` stay separate
 - `--settings` opens the settings file in `$EDITOR`
 - Type-to-filter in the host selector
 - Public key selection shows fingerprints
 - The selector starts on the host you connected to last
 - `--resolve` renames hosts from reverse DNS interactively, with `--fqdn` and `--all`
 - `max_rows` setting controls how many hosts the selector shows per page
+- New hosts get an alias suggested from a reverse lookup, with the user appended
+- Aliases are validated, so an entry can no longer define several `Host` patterns
+- The host list shows `user@hostname` when an entry sets a user
 
 ### Changed
 

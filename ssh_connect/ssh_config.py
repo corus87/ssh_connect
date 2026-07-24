@@ -5,6 +5,7 @@ from pathlib import Path
 from .paths import ensure_file
 
 _LINE = re.compile(r"^(\S+)[\s=]+(.*?)$")
+_INVALID_ALIAS = re.compile(r"[^A-Za-z0-9._-]+")
 
 _CANONICAL = {
     "host": "Host",
@@ -25,6 +26,15 @@ _CANONICAL = {
 
 def _canonical(key: str) -> str:
     return _CANONICAL.get(key.lower(), key)
+
+
+def valid_alias(value: str) -> bool:
+    """Host takes whitespace separated patterns, so an alias must be a single token."""
+    return bool(value) and not _INVALID_ALIAS.search(value)
+
+
+def sanitize_alias(value: str) -> str:
+    return _INVALID_ALIAS.sub("-", value.strip()).strip("-.")
 
 
 @dataclass
